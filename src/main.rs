@@ -30,7 +30,7 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        writeln!(io::stderr(), "Please provide the file extension as an argument. Expected usage: filecat <extension> [path] [excluded_dirs...]")?;
+        writeln!(io::stderr(), "Please provide the file extension as an argument. Expected usage: file_cat <extension> [path] [excluded_dirs...]")?;
         return Ok(());
     }
 
