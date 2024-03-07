@@ -2,6 +2,14 @@
 name = "file_cat"
 version = "0.1.0"
 edition = "2021"
+authors = ["LordOfPolls <dev@lordofpolls.com"]
+license = "MIT"
+description = "A directory concatinator"
+readme = "README.md"
+homepage = "https://github.com/LordOfPolls/FileCat"
+repository = "https://github.com/LordOfPolls/FileCat"
+categories = ["command-line-utilities"]
+keywords = ["file", "concatenation", "directory", "cli", "utility"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
