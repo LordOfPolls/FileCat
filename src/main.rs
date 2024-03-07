@@ -3,13 +3,21 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 
+use clap::Parser;
+
 fn collect_files_with_extension(
     extension: &str,
     recursive: bool,
     path: &Path,
     excluded_dirs: &[String],
+    depth: u32,
+    max_depth: u32,
 ) -> io::Result<Vec<fs::DirEntry>> {
     let mut files = Vec::new();
+
+    if depth > max_depth {
+        return Ok(files);
+    }
 
     let entries = fs::read_dir(path)?;
     for entry in entries {
@@ -18,7 +26,7 @@ fn collect_files_with_extension(
         if path.is_file() && (path.extension().map_or(false, |ext| ext.to_str().unwrap() == extension || extension == "*")) {
             files.push(entry);
         } else if recursive && path.is_dir() && !excluded_dirs.contains(&path.file_name().unwrap().to_string_lossy().into_owned()) {
-            let mut sub_files = collect_files_with_extension(extension, recursive, &path, excluded_dirs)?;
+            let mut sub_files = collect_files_with_extension(extension, recursive, &path, excluded_dirs, depth + 1, max_depth)?;
             files.append(&mut sub_files);
         }
     }
@@ -29,7 +37,7 @@ fn collect_files_with_extension(
 fn get_comment_syntax(extension: &str) -> (&str, &str) {
     match extension {
         "py" | "sh" | "rb" | "pl" | "r" | "jl" => ("#", ""),
-        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs" | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm" | "erl" | "hrl" => ("//", ""),
+        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs" | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm" | "erl" | "hrl" => ("//", ""), // could probably just leave this for the default case, but it's nice to be explicit
         "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp" => ("<!--", "-->"),
         "css" | "scss" | "sass" | "less" | "stylus" => ("/*", "*/"),
         "lua" | "sql" | "ada" | "applescript" | "hive" | "pig" | "vb" => ("--", ""),
@@ -44,7 +52,7 @@ fn get_comment_syntax(extension: &str) -> (&str, &str) {
         "gnuplot" => ("#", ""),
         "scm" | "sch" | "rkt" | "sld" => (";", ""),
         "m4" => ("dnl", ""),
-        _ => ("//", "")
+        _ => ("//", "")  // default to C-style comments
     }
 }
 
@@ -62,22 +70,56 @@ fn get_relative_path(path: &Path) -> io::Result<String> {
     Ok(relative_path.to_string_lossy().into_owned())
 }
 
-fn main() -> io::Result<()> {
-    let args: Vec<String> = env::args().collect();
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Files with this extension will be collected
+    #[arg(index = 1)]
+    file_extension: String,
 
-    if args.len() < 2 {
-        writeln!(io::stderr(), "Please provide the file extension as an argument. Expected usage: file_cat <extension> [path] [excluded_dirs...]")?;
+    /// The path to search for files
+    #[arg(short, long, default_value = ".")]
+    path: String,
+
+    /// Directories to exclude from the search, comma separated
+    #[arg(short, long, default_value = "", value_delimiter = ',')]
+    exclude: Vec<String>,
+
+    /// Search recursively
+    #[arg(short, long, default_value = "false")]
+    recursive: bool,
+
+    /// Max Recursion Depth
+    #[arg(short, long, default_value = "100")]
+    max_depth: u32,
+
+    /// Strip newlines from the output
+    #[arg(short, long, default_value = "false")]
+    strip_newlines: bool,
+}
+
+fn main() -> io::Result<()> {
+    let args = Args::parse();
+    let extension = args.file_extension;
+    let path = args.path;
+    let excluded_dirs = args.exclude;
+    let recursive = args.recursive;
+    let max_depth = args.max_depth;
+    let strip_newlines = args.strip_newlines;
+
+
+    let excluded_dirs: Vec<String> = excluded_dirs.iter().map(|dir| dir.trim().to_string()).collect();
+
+    let system_path_separator = get_path_separator();
+
+    if !Path::new(&path).exists() {
+        writeln!(io::stderr(), "Path does not exist: {}", path)?;
         return Ok(());
     }
 
-    let extension = &args[1];
-    let path = &args.get(2).map_or(".", |p| p.as_str());
-    let excluded_dirs: Vec<String> = args.iter().skip(3).cloned().collect();
-    let system_path_separator = get_path_separator();
-
     env::set_current_dir(path)?;
 
-    let files = collect_files_with_extension(extension, true, &env::current_dir()?, &excluded_dirs)?;
+    let files = collect_files_with_extension(&extension, recursive, &env::current_dir()?, &excluded_dirs, 0, max_depth)?;
 
     if files.is_empty() {
         writeln!(io::stderr(), "No files found with extension: {}", extension)?;
@@ -87,15 +129,20 @@ fn main() -> io::Result<()> {
     for file in files {
         let file_name = file.file_name().into_string().unwrap();
         let relative_path = get_relative_path(&file.path())?;
-        let (comment_prefix, comment_suffix) = get_comment_syntax(extension);
+        let (comment_prefix, comment_suffix) = get_comment_syntax(&extension);
 
+        writeln!(io::stdout(), "")?;
         writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path, system_path_separator, file_name, comment_suffix)?;
         let input = File::open(file.path())?;
         let reader = BufReader::new(input);
 
         for line in reader.lines() {
             let line = line?;
-            writeln!(io::stdout(), "{}", line)?;
+            if strip_newlines {
+                write!(io::stdout(), "{}", line)?;
+            } else {
+                writeln!(io::stdout(), "{}", line)?;
+            }
         }
 
         writeln!(io::stdout())?;
