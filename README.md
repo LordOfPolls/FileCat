@@ -1,4 +1,5 @@
 # FileCat
+![Crates.io Version](https://img.shields.io/crates/v/file_cat?link=https%3A%2F%2Fcrates.io%2Fcrates%2Ffile_cat)
 
 FileCat is a command-line tool written in Rust that allows you to concatenate the contents of files with a specified extension and display them in the console. It provides a convenient way to view the contents of multiple files at once, along with their file paths and names.
 Features
@@ -16,6 +17,12 @@ To use FileCat, you need to have Rust installed on your system. If you don't hav
 
 Once Rust is installed, you can clone this repository and build the project using Cargo, the Rust package manager:
 
+### From Crates.io
+```shell
+cargo install file_cat
+```
+
+### From Source
 ```shell
 git clone https://github.com/your-username/file_cat.git
 cd file_cat
