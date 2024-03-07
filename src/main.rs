@@ -26,6 +26,42 @@ fn collect_files_with_extension(
     Ok(files)
 }
 
+fn get_comment_syntax(extension: &str) -> (&str, &str) {
+    match extension {
+        "py" | "sh" | "rb" | "pl" | "r" | "jl" => ("#", ""),
+        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs" | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm" | "erl" | "hrl" => ("//", ""),
+        "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp" => ("<!--", "-->"),
+        "css" | "scss" | "sass" | "less" | "stylus" => ("/*", "*/"),
+        "lua" | "sql" | "ada" | "applescript" | "hive" | "pig" | "vb" => ("--", ""),
+        "coffee" | "litcoffee" => ("###", ""),
+        "nim" => ("##", ""),
+        "edn" | "clj" | "cljs" | "cljc" => (";", ""),
+        "ml" | "mli" | "fsscript" => ("(*", "*)"),
+        "s" | "S" | "inc" => (";", ""),
+        "ahk" => (";", ""),
+        "tex" | "sty" => ("%", ""),
+        "asciidoc" | "adoc" => ("//", ""),
+        "gnuplot" => ("#", ""),
+        "scm" | "sch" | "rkt" | "sld" => (";", ""),
+        "m4" => ("dnl", ""),
+        _ => ("//", "")
+    }
+}
+
+fn get_path_separator() -> &'static str {
+    if cfg!(windows) {
+        "\\"
+    } else {
+        "/"
+    }
+}
+
+fn get_relative_path(path: &Path) -> io::Result<String> {
+    let current_dir = env::current_dir()?;
+    let relative_path = path.strip_prefix(current_dir).unwrap_or(path);
+    Ok(relative_path.to_string_lossy().into_owned())
+}
+
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
@@ -37,10 +73,9 @@ fn main() -> io::Result<()> {
     let extension = &args[1];
     let path = &args.get(2).map_or(".", |p| p.as_str());
     let excluded_dirs: Vec<String> = args.iter().skip(3).cloned().collect();
+    let system_path_separator = get_path_separator();
 
     env::set_current_dir(path)?;
-
-    let system_path_separator = if cfg!(windows) { "\\" } else { "/" };
 
     let files = collect_files_with_extension(extension, true, &env::current_dir()?, &excluded_dirs)?;
 
@@ -51,32 +86,10 @@ fn main() -> io::Result<()> {
 
     for file in files {
         let file_name = file.file_name().into_string().unwrap();
-        let path = file.path();
-        let relative_path = path.strip_prefix(env::current_dir()?).unwrap();
+        let relative_path = get_relative_path(&file.path())?;
+        let (comment_prefix, comment_suffix) = get_comment_syntax(extension);
 
-        // get the relevant comment syntax by extension
-        let (comment_prefix, comment_suffix) = match extension.as_str() {
-            "py" | "sh" | "rb" | "pl" | "r" | "jl" => ("#", ""),
-            "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs" | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm" | "erl" | "hrl" => ("//", ""),
-            "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp" => ("<!--", "-->"),
-            "css" | "scss" | "sass" | "less" | "stylus" => ("/*", "*/"),
-            "lua" | "sql" | "ada" | "applescript" | "hive" | "pig" | "vb" => ("--", ""),
-            "coffee" | "litcoffee" => ("###", ""),
-            "nim" => ("##", ""),
-            "edn" | "clj" | "cljs" | "cljc" => (";", ""),
-            "ml" | "mli" | "fsscript" => ("(*", "*)"),
-            "s" | "S" | "inc" => (";", ""),
-            "ahk" => (";", ""),
-            "tex" | "sty" => ("%", ""),
-            "asciidoc" | "adoc" => ("//", ""),
-            "gnuplot" => ("#", ""),
-            "scm" | "sch" | "rkt" | "sld" => (";", ""),
-            "m4" => ("dnl", ""),
-            _ => ("//", "")
-        };
-
-        writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path.to_string_lossy(), system_path_separator, file_name, comment_suffix)?;
-
+        writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path, system_path_separator, file_name, comment_suffix)?;
         let input = File::open(file.path())?;
         let reader = BufReader::new(input);
 
