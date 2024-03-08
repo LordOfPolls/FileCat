@@ -23,10 +23,24 @@ fn collect_files_with_extension(
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
-        if path.is_file() && (path.extension().map_or(false, |ext| extension == "*" || ext.to_str().unwrap().to_lowercase() == extension)) {
+        if path.is_file()
+            && (path.extension().map_or(false, |ext| {
+                extension == "*" || ext.to_str().unwrap().to_lowercase() == extension
+            }))
+        {
             files.push(entry);
-        } else if recursive && path.is_dir() && !excluded_dirs.contains(&path.file_name().unwrap().to_string_lossy().into_owned()) {
-            let mut sub_files = collect_files_with_extension(extension, recursive, &path, excluded_dirs, depth + 1, max_depth)?;
+        } else if recursive
+            && path.is_dir()
+            && !excluded_dirs.contains(&path.file_name().unwrap().to_string_lossy().into_owned())
+        {
+            let mut sub_files = collect_files_with_extension(
+                extension,
+                recursive,
+                &path,
+                excluded_dirs,
+                depth + 1,
+                max_depth,
+            )?;
             files.append(&mut sub_files);
         }
     }
@@ -36,20 +50,25 @@ fn collect_files_with_extension(
 
 fn get_comment_syntax(extension: &str) -> (&str, &str) {
     match extension {
-        "py" | "sh" | "rb" | "pl" | "r" | "jl" | "gnuplot" | "toml" | "ini" | "cfg" | "conf" | "properties" | "yaml" | "yml" | "hcl" | "tf" | "nix" => ("#", ""),
-        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs" | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm" | "erl" | "hrl" | "asciidoc" | "adoc" | "json" | "jsonc" | "cson" | "proto" | "hocon" | "json5" | "hjson" => ("//", ""),
-        "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp" | "xsd" | "dtd" | "xsl" | "xslt" | "mathml" => ("<!--", "-->"),
+        "py" | "sh" | "rb" | "pl" | "r" | "jl" | "gnuplot" | "toml" | "ini" | "cfg" | "conf"
+        | "properties" | "yaml" | "yml" | "hcl" | "tf" | "nix" => ("#", ""),
+        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs"
+        | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm"
+        | "erl" | "hrl" | "asciidoc" | "adoc" | "json" | "jsonc" | "cson" | "proto" | "hocon"
+        | "json5" | "hjson" => ("//", ""),
+        "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp"
+        | "xsd" | "dtd" | "xsl" | "xslt" | "mathml" => ("<!--", "-->"),
         "css" | "scss" | "sass" | "less" | "stylus" => ("/*", "*/"),
         "lua" | "sql" | "ada" | "applescript" | "hive" | "pig" | "vb" | "dhall" => ("--", ""),
         "coffee" | "litcoffee" => ("###", ""),
         "nim" => ("##", ""),
-        "edn" | "clj" | "cljs" | "cljc" | "s" | "S" | "inc" | "ahk" | "scm" |
-        "sch" | "rkt" | "sld" => (";", ""),
+        "edn" | "clj" | "cljs" | "cljc" | "s" | "S" | "inc" | "ahk" | "scm" | "sch" | "rkt"
+        | "sld" => (";", ""),
         "ml" | "mli" | "fsscript" => ("(*", "*)"),
         "tex" | "sty" => ("%", ""),
         "m4" => ("dnl", ""),
         "csv" | "tsv" => ("", ""),
-        _ => ("//", "")  // default to C-style comments
+        _ => ("//", ""), // default to C-style comments
     }
 }
 
@@ -109,8 +128,10 @@ fn main() -> io::Result<()> {
     let strip_newlines = args.strip_newlines;
     let hide_filename_comments = args.hide_filename_comments;
 
-
-    let excluded_dirs: Vec<String> = excluded_dirs.iter().map(|dir| dir.trim().to_string()).collect();
+    let excluded_dirs: Vec<String> = excluded_dirs
+        .iter()
+        .map(|dir| dir.trim().to_string())
+        .collect();
 
     let system_path_separator = get_path_separator();
 
@@ -121,7 +142,14 @@ fn main() -> io::Result<()> {
 
     env::set_current_dir(path)?;
 
-    let files = collect_files_with_extension(&extension, recursive, &env::current_dir()?, &excluded_dirs, 0, max_depth)?;
+    let files = collect_files_with_extension(
+        &extension,
+        recursive,
+        &env::current_dir()?,
+        &excluded_dirs,
+        0,
+        max_depth,
+    )?;
 
     if files.is_empty() {
         writeln!(io::stderr(), "No files found with extension: {}", extension)?;
@@ -136,7 +164,15 @@ fn main() -> io::Result<()> {
             let (comment_prefix, comment_suffix) = get_comment_syntax(&extension);
 
             writeln!(io::stdout(), "")?;
-            writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path, system_path_separator, file_name, comment_suffix)?;
+            writeln!(
+                io::stdout(),
+                "{} File: {}{}{} {}",
+                comment_prefix,
+                relative_path,
+                system_path_separator,
+                file_name,
+                comment_suffix
+            )?;
         }
 
         let input = File::open(file.path())?;
