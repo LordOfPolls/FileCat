@@ -79,7 +79,7 @@ struct Args {
     strip_newlines: bool,
 
     /// Hide filename comments
-    #[arg(short, long, default_value = "false")]
+    #[arg(short = 'c', long = "no-comments", default_value = "false")]
     hide_filename_comments: bool,
 
     /// Only use the default handler, instead of the handler for the specified extension
