@@ -1,5 +1,10 @@
 # FileCat
-![Crates.io Version](https://img.shields.io/crates/v/file_cat?link=https%3A%2F%2Fcrates.io%2Fcrates%2Ffile_cat)
+![Crates.io Version](https://img.shields.io/crates/v/file_cat)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/file_cat)
+![Crates.io License](https://img.shields.io/crates/l/file_cat)
+
+
+
 
 FileCat is a command-line tool written in Rust that allows you to concatenate the contents of files with a specified extension.
 This was originally created to concatenate project directories for LLM context and training data.
