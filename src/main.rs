@@ -81,6 +81,10 @@ struct Args {
     /// Hide filename comments
     #[arg(short, long, default_value = "false")]
     hide_filename_comments: bool,
+
+    /// Only use the default handler, instead of the handler for the specified extension
+    #[arg(short, long, default_value = "false")]
+    default_only: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -119,7 +123,13 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    handlers::concat(extension, files, hide_filename_comments, strip_newlines)?;
+    handlers::concat(
+        extension,
+        files,
+        hide_filename_comments,
+        strip_newlines,
+        args.default_only,
+    )?;
 
     Ok(())
 }
