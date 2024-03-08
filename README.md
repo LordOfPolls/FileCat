@@ -27,8 +27,8 @@ Examples:
 
 ```shell
 file_cat rs -r
-file_cat txt /path/to/directory
-file_cat js /path/to/directory node_modules dist
+file_cat txt -p /path/to/directory
+file_cat js -p /path/to/directory -e 'node_modules, dist'
 ```
 
 
