@@ -23,7 +23,7 @@ fn collect_files_with_extension(
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
-        if path.is_file() && (path.extension().map_or(false, |ext| ext.to_str().unwrap() == extension || extension == "*")) {
+        if path.is_file() && (path.extension().map_or(false, |ext| extension == "*" || ext.to_str().unwrap().to_lowercase() == extension)) {
             files.push(entry);
         } else if recursive && path.is_dir() && !excluded_dirs.contains(&path.file_name().unwrap().to_string_lossy().into_owned()) {
             let mut sub_files = collect_files_with_extension(extension, recursive, &path, excluded_dirs, depth + 1, max_depth)?;
@@ -100,7 +100,7 @@ struct Args {
 
 fn main() -> io::Result<()> {
     let args = Args::parse();
-    let extension = args.file_extension;
+    let extension = args.file_extension.to_lowercase();
     let path = args.path;
     let excluded_dirs = args.exclude;
     let recursive = args.recursive;
