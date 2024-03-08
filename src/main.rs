@@ -93,6 +93,10 @@ struct Args {
     /// Strip newlines from the output
     #[arg(short, long, default_value = "false")]
     strip_newlines: bool,
+
+    /// Hide filename comments
+    #[arg(short, long, default_value = "false")]
+    hide_filename_comments: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -103,6 +107,7 @@ fn main() -> io::Result<()> {
     let recursive = args.recursive;
     let max_depth = args.max_depth;
     let strip_newlines = args.strip_newlines;
+    let hide_filename_comments = args.hide_filename_comments;
 
 
     let excluded_dirs: Vec<String> = excluded_dirs.iter().map(|dir| dir.trim().to_string()).collect();
@@ -126,10 +131,14 @@ fn main() -> io::Result<()> {
     for file in files {
         let file_name = file.file_name().into_string().unwrap();
         let relative_path = get_relative_path(&file.path())?;
-        let (comment_prefix, comment_suffix) = get_comment_syntax(&extension);
 
-        writeln!(io::stdout(), "")?;
-        writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path, system_path_separator, file_name, comment_suffix)?;
+        if !hide_filename_comments {
+            let (comment_prefix, comment_suffix) = get_comment_syntax(&extension);
+
+            writeln!(io::stdout(), "")?;
+            writeln!(io::stdout(), "{} File: {}{}{} {}", comment_prefix, relative_path, system_path_separator, file_name, comment_suffix)?;
+        }
+
         let input = File::open(file.path())?;
         let reader = BufReader::new(input);
 
