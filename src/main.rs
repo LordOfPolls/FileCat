@@ -1,9 +1,12 @@
 use std::env;
-use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, Write};
+use std::fs::{self};
+use std::io::{self, Write};
 use std::path::Path;
 
 use clap::Parser;
+
+mod handlers;
+mod utils;
 
 fn collect_files_with_extension(
     extension: &str,
@@ -46,44 +49,6 @@ fn collect_files_with_extension(
     }
 
     Ok(files)
-}
-
-fn get_comment_syntax(extension: &str) -> (&str, &str) {
-    match extension {
-        "py" | "sh" | "rb" | "pl" | "r" | "jl" | "gnuplot" | "toml" | "ini" | "cfg" | "conf"
-        | "properties" | "yaml" | "yml" | "hcl" | "tf" | "nix" => ("#", ""),
-        "c" | "cpp" | "h" | "hpp" | "java" | "js" | "ts" | "go" | "php" | "swift" | "kt" | "rs"
-        | "fs" | "fsx" | "fsi" | "cs" | "dart" | "scala" | "groovy" | "v" | "hs" | "elm"
-        | "erl" | "hrl" | "asciidoc" | "adoc" | "json" | "jsonc" | "cson" | "proto" | "hocon"
-        | "json5" | "hjson" => ("//", ""),
-        "html" | "fsproj" | "xml" | "svg" | "xhtml" | "xaml" | "aspx" | "jsp" | "jspx" | "gsp"
-        | "xsd" | "dtd" | "xsl" | "xslt" | "mathml" => ("<!--", "-->"),
-        "css" | "scss" | "sass" | "less" | "stylus" => ("/*", "*/"),
-        "lua" | "sql" | "ada" | "applescript" | "hive" | "pig" | "vb" | "dhall" => ("--", ""),
-        "coffee" | "litcoffee" => ("###", ""),
-        "nim" => ("##", ""),
-        "edn" | "clj" | "cljs" | "cljc" | "s" | "S" | "inc" | "ahk" | "scm" | "sch" | "rkt"
-        | "sld" => (";", ""),
-        "ml" | "mli" | "fsscript" => ("(*", "*)"),
-        "tex" | "sty" => ("%", ""),
-        "m4" => ("dnl", ""),
-        "csv" | "tsv" => ("", ""),
-        _ => ("//", ""), // default to C-style comments
-    }
-}
-
-fn get_path_separator() -> &'static str {
-    if cfg!(windows) {
-        "\\"
-    } else {
-        "/"
-    }
-}
-
-fn get_relative_path(path: &Path) -> io::Result<String> {
-    let current_dir = env::current_dir()?;
-    let relative_path = path.strip_prefix(current_dir).unwrap_or(path);
-    Ok(relative_path.to_string_lossy().into_owned())
 }
 
 #[derive(Parser, Debug)]
@@ -133,8 +98,6 @@ fn main() -> io::Result<()> {
         .map(|dir| dir.trim().to_string())
         .collect();
 
-    let system_path_separator = get_path_separator();
-
     if !Path::new(&path).exists() {
         writeln!(io::stderr(), "Path does not exist: {}", path)?;
         return Ok(());
@@ -156,39 +119,7 @@ fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    for file in files {
-        let file_name = file.file_name().into_string().unwrap();
-        let relative_path = get_relative_path(&file.path())?;
-
-        if !hide_filename_comments {
-            let (comment_prefix, comment_suffix) = get_comment_syntax(&extension);
-
-            writeln!(io::stdout(), "")?;
-            writeln!(
-                io::stdout(),
-                "{} File: {}{}{} {}",
-                comment_prefix,
-                relative_path,
-                system_path_separator,
-                file_name,
-                comment_suffix
-            )?;
-        }
-
-        let input = File::open(file.path())?;
-        let reader = BufReader::new(input);
-
-        for line in reader.lines() {
-            let line = line?;
-            if strip_newlines {
-                write!(io::stdout(), "{}", line)?;
-            } else {
-                writeln!(io::stdout(), "{}", line)?;
-            }
-        }
-
-        writeln!(io::stdout())?;
-    }
+    handlers::concat(extension, files, hide_filename_comments, strip_newlines)?;
 
     Ok(())
 }
