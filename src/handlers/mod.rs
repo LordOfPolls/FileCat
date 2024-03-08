@@ -1,5 +1,6 @@
 use std::fs::DirEntry;
 
+mod csv_handler;
 mod default;
 
 pub fn concat(
@@ -13,7 +14,8 @@ pub fn concat(
         return default::concat(extension, files, hide_filename_comments, strip_newlines);
     }
 
-    match extension {
+    match extension.as_str() {
+        "csv" => csv_handler::concat(files)?,
         _ => default::concat(extension, files, hide_filename_comments, strip_newlines)?,
     }
     Ok(())
