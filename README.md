@@ -1,5 +1,6 @@
 # FileCat
-![Crates.io Version](https://img.shields.io/crates/v/file_cat)
+![GitHub Release](https://img.shields.io/github/v/release/LordOfPolls/FileCat?label=GitHub%20Release)
+[![Crates.io Version](https://img.shields.io/crates/v/file_cat)](https://img.shields.io/crates/v/file_cat?label=crates.io%20Version)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/file_cat)
 ![Crates.io License](https://img.shields.io/crates/l/file_cat)
 
